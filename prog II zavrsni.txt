@@ -1,0 +1,144 @@
+#include <iostream>
+#include <cstring>
+#include <cmath>
+
+using namespace std;
+
+class IllegalWidthException: public exception
+{
+    const char *what() const noexcept override
+    {
+        return "Sirina ne moze biti negativna";
+    }
+};
+
+class OutOfMemoryException: public exception
+{
+    const char *what() const noexcept override
+    {
+        return "OutOfMemoryException!";
+    }
+};
+
+class View
+{
+private:
+    double width;
+    double height;
+public:
+    View(){};
+    View(double _width, double _height): width(_width), height(_height)
+    {
+        if(_width < 0) throw IllegalWidthException();
+    };
+    virtual ~View(){};
+    double get_width() const {return width;};
+    double get_height() const {return height;};
+    void set_width(double _width) {width = _width;};
+    void set_height(double _height) {height = _height;};
+    double area() const {return width * height;};
+    virtual double volume() const = 0;///potpuna virtuelna metoda ili apstraktna metoda
+    virtual void print()
+    {
+        cout << "sirina je: " << width << ", dok je visina: " << height << endl;
+    }
+};
+
+///sta klasa ne nasljedjuje:
+///1. konstruktore
+///2. destruktor
+///3. prijatelje
+///4. operator dodjele
+
+class TextView: public View
+{
+private:
+    char *text;
+    int textSize;
+public:
+    TextView(){text = 0;};
+    TextView(double _width, double _height, char *_text, int _textSize): View(_width, _height), textSize(_textSize)
+    {
+        if(!(text = new char[strlen(_text) + 1])) throw OutOfMemoryException();
+        strcpy(text, _text);
+    }
+    TextView(const TextView &tv);
+    TextView &operator=(const TextView &tv);
+    virtual ~TextView() {delete[] text; text = 0;};
+    virtual double volume() const
+    {
+        return strlen(text) * textSize;
+    }
+    void print()
+    {
+        cout << "Tekst je: " << text <<", velicine: " << textSize << ", ";
+        View::print();
+    }
+};
+
+TextView::TextView(const TextView &tv)
+{
+    text = new char[strlen(tv.text) + 1];
+    strcpy(text, tv.text);
+    textSize = tv.textSize;
+    set_width(tv.get_width());
+    set_height(tv.get_height());
+}
+
+TextView &TextView::operator=(const TextView &tv)
+{
+    if(this != &tv)
+    {
+        delete[] text;
+        text = new char[strlen(tv.text) + 1];
+        strcpy(text, tv.text);
+        textSize = tv.textSize;
+        set_width(tv.get_width());
+        set_height(tv.get_height());
+    }
+    return *this;
+}
+
+
+class CircularView: public View
+{
+private:
+    double radius;
+public:
+    CircularView(){};
+    CircularView(double width, double height, double radius): View(width, height), radius(radius){};
+    virtual double volume() const
+    {
+        return pow(radius, 2) * 3.14;
+    }
+    void print()
+    {
+        cout << "Poluprecnik je: " << radius << ", ";
+        View::print();
+    }
+};
+
+int main()
+{
+    try
+    {
+        TextView tv(-10.55, 20.36, "neki tekst", 16);
+        tv = TextView(11.08, 0.44, "novi tekst", 32);
+        CircularView cw(14, 14, 7);
+        View *arr[2];
+        arr[0] = new TextView(tv);///polimorfizam
+        arr[1] = new CircularView(7, 7, 3.5);///polimorfizam
+        for(int i = 0; i < 2; i++)
+        {
+            arr[i]->print();
+        }
+    }
+    catch (const exception &e)
+    {
+        cout << e.what() << endl;
+    }
+    catch (...)///defaultni catch blok
+    {
+        cout << "Doslo je do nepoznate greske!" << endl;
+    }
+}
